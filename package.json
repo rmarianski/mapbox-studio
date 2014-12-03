@@ -22,7 +22,7 @@
     "express": "3.18.x",
     "body-parser": "1.9.x",
     "passport": "0.2.x",
-    "passport-oauth": "1.0.x",
+    "passport-oauth": "https://github.com/BergWerkGIS/passport-oauth/tarball/master",
     "minimist": "0.1.x",
     "underscore": "1.4.x",
     "tilejson": "0.10.0",
