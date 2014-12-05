@@ -15,6 +15,9 @@ if (process.platform === 'win32') {
     process.env.PATH = '';
 }
 
+var globalTunnel = require('global-tunnel');
+globalTunnel.initialize();
+
 var tm = require('./lib/tm');
 var path = require('path');
 var getport = require('getport');
