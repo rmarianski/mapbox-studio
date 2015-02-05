@@ -182,10 +182,24 @@ tape('#settings-form', function(t) {
 });
 
 tape('.js-history browses projects', function(t) {
+    localStorage.clear();
+    var path = cwd;
     t.ok(!hasModal('#browseproject'));
     $('.js-history .js-browseproject').click();
+
     t.ok(hasModal('#browseproject'));
-    t.end();
+    t.ok(localStorage.getItem('stylebrowseproject') === path, ' intial key/value in localstorage equals path.');
+
+    onajax(function() {
+        var destination = $('#browseproject .folder:eq(0)').attr('href').split('#').pop();
+        // requires double click
+        $('#browseproject .folder:eq(0)').click().click();
+        onajax(function() {
+            t.ok(localStorage.getItem('stylebrowseproject') === destination, ' new path saved to localstorage.');
+            localStorage.clear();
+            t.end();
+        });
+    });
 });
 
 tape('stylesheet error ', function(t) {
@@ -588,7 +602,7 @@ tape('export-ui: .js-dimensions over limit triggers warning', function(t) {
     $('.js-dimensions').change();
 
     t.ok($('#pixelX').hasClass('warning'));
-    t.ok($('#zoomedto .zoom8 .perc').hasClass('warning'));
+    t.ok($('#zoomedto .zoom8').hasClass('warning'));
 
     t.end();
 });
@@ -702,7 +716,7 @@ tape('keybindings bookmark', function(t) {
     e.ctrlKey = true;
     e.which = 66; // b
     $('body').trigger(e);
-    t.ok($('.places-button').hasClass('spinner'), 'ctrl+b => #add-bookmark.spinner');
+    t.ok($('.js-places-button').hasClass('spinner'), 'ctrl+b => #add-bookmark.spinner');
     onajax(function() {
         t.end();
     });

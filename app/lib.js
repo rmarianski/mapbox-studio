@@ -33,16 +33,16 @@ var errorHandler = _(function() {
     .split('|')
     .filter(function(msg) { return msg; })
     .map(function(msg) {
-      return "<div class='msg pad1 fill-darken1'>" + decodeURIComponent(msg) + "</div>";
+      return "<div class='msg pad1 fill-darken2'>" + decodeURIComponent(msg) + "</div>";
     });
   $('#map-errors').html(html);
-}).throttle(50);
+}).throttle(100);
 
 var statHandler = function(key) {
   var unit = key === 'srcbytes' ? 'k' : 'ms';
+
   return _(function() {
     if (document.cookie.indexOf(key) === -1) return;
-    var max = 300;
 
     var stats = _(document.cookie
       .split(key + '=').pop()
@@ -53,20 +53,51 @@ var statHandler = function(key) {
       memo[z[0]] = z.slice(1,4).map(function(v) { return parseInt(v,10); });
       return memo;
     }, {});
+
     var html = "<a href='#' class='zoomedto-close inline pad1 quiet pin-bottomright icon close'></a>";
 
     function round(v) { return Math.round(v * 0.001); }
 
+    // mapbox api limits
+    var limits = {
+          avgRender: 300,
+          maxRender: 1000,
+          avgTile: 500
+        }
+
     for (var z = 0; z < 23; z++) {
-      var s = stats[z];
+      var s = stats[z],
+          warning = undefined,
+          max;
+
       if (key === 'srcbytes' && s) {
         s = s.map(round);
+        max = limits.avgTile
+      } else {
+        max = limits.maxRender
       }
+
       var l = s ? Math.round(Math.min(s[0],max)/max*100) : null;
       var w = s ? Math.round((s[2]-s[0])/max*100) : null;
       var a = s ? Math.round(Math.min(s[1],max)/max*100) : null;
+
+      if (key === 'srcbytes') {
+        if (s && s[1] > limits.avgTile) {
+          warning = 'Tile size exceeds ' + limits.avgTile + unit + ', the limit for mapbox.com uploads.'
+        }
+      } else {
+        // Disabling for now due to significant discrepancy between
+        // local render times and Mapbox server render times
+
+        // if (s && s[1] > limits.avgRender ) {
+        //   warning = 'Average tile render time exceeds the ' + limits.avgRender + unit + ' limit for mapbox.com uploads.'
+        // } else if (s && s[2] > limits.maxRender) {
+        //   warning = 'Maximum tile render time exceeds the ' + limits.maxRender + unit + ' limit for mapbox.com uploads.'
+        // }
+      }
+
       html += [
-        "<a href='#zoomedto' class='pad0y quiet clip contain strong micro col12 zoom zoom",z,"'>",
+        "<a href='#zoomedto' class='pad0y quiet clip contain strong micro col12 zoom zoom",z + (warning ? ' warning' : ''),"'>",
         s ? "<span class='strong avg quiet'>"+s[1]+unit+"</span>" : '',
         s ? "<span class='range'>" : '',
         s ? "<span class='minmax' style='margin-left:"+l+"%; width:"+w+"%;'></span>" : '',
@@ -75,9 +106,19 @@ var statHandler = function(key) {
         "<span class='zoom-display round pad0 fill-darken1 strong'>z",z,"</span>",
         "</a>"
       ].join('');
+
+      if (warning) {
+        var note = $('<div>', {
+          class: 'text-left icon alert top3 pin-top small note',
+          text: warning
+        });
+      }
     }
-    $('#zoomedto').html(html);
-  }).throttle(50);
+
+    $('#zoomedto').html(html).append(note);
+
+  }).throttle(100);
+
 };
 
 var delStyle = function(ev) {
@@ -142,13 +183,17 @@ views.Browser.prototype.initialize = function(options, initCallback) {
   this.filter = options.filter || function(f) { return true; };
   this.isFile = options.isFile || function() {};
   this.isProject = options.isProject || function() {};
-  this.cwd = this.$('input[name=cwd]').val();
+  this.cwd = localStorage.getItem(window.location.pathname.split('/').pop() + $(this.el).attr('id')) || this.$('input[name=cwd]').val();
   return this.render();
 };
 views.Browser.prototype.render = function() {
   var view = this;
   var win = view.cwd.indexOf(':') === 1;
   var sep = win ? '\\' : '/';
+
+  // Store path for each modal type separately, with separate values saved for Source and Style.
+  localStorage.setItem(window.location.pathname.split('/').pop() + $(this.el).attr('id'), view.cwd);
+
   $.ajax({
     url: '/browse?path=' + view.cwd,
     dataType: 'json',
@@ -176,8 +221,24 @@ views.Browser.prototype.render = function() {
       // Reset scroll position to top.
       view.$('.list').get(0).scrollTop = 0;
     },
-    // @TODO
-    error: function(resp) {}
+    error: function(resp) {
+
+      // If path is already set to root and errors, give up
+      if (view.cwd === '/') return Modal.show('error', resp.responseText);
+
+      // Assume localstorage path doesn't exist, try default path
+      var newPath = view.$('input[name=cwd]').val();
+
+      // If default path returned error, set path to root
+      if (view.cwd === newPath) {
+        newPath = '/';
+      }
+
+      // Try again
+      localStorage.setItem(window.location.pathname.split('/').pop() + $(this.el).attr('id'), newPath);
+      view.cwd = newPath;
+      view.render();
+    }
   });
 };
 

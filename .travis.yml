@@ -9,7 +9,7 @@ os:
 
 env:
   matrix:
-  - NODE_VERSION="0.10.33" ATOM_VERSION="0.19.2"
+  - NODE_VERSION="0.10.33" ATOM_VERSION="0.21.1"
   global:
   - secure: "EXgVgtayyyxt7flmPhwKZIvkqfkpX1TnrX/EX7ZEQ36TuZGYYX5OXjLTtXWk9sSE6l6O3wRewpkou2PvQQpX25yOI8XYD8vBjx3ymt1lg5RS8nTDZO0XHsd0aTV7JxJCyZGCkIYXvVRPpVbLDbGwULhJe55p8YYKx/lohDB3FYM="
   - secure: "YvtR+B6yC+MxsU7tP6FCEHKLZoRfvlfwX5HSs8eAYWxqrZmIqJTbavSlj4bQ919szyQ1vZ8wTMkXd/8tCqWARTyWA8tLOHgXm/ZAlxdtdtotyZzNsbC0FmtJHF/wmaQcJ4lX2vcWWhOwtEetEULO6Hv0xGiW26aK+Jp240f6NJE="
@@ -28,7 +28,9 @@ before_install:
 - nvm use $NODE_VERSION
 - node --version
 - npm --version
-- if [ $(uname -s) == "Linux" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt-get update -q && sudo apt-get install -y libstdc++6; fi
+# install c++11 capable libstdc++ without sudo
+- if [[ $(uname -s) == 'Linux' ]]; then wget https://launchpad.net/~ubuntu-toolchain-r/+archive/ubuntu/test/+files/libstdc%2B%2B6_4.8.1-2ubuntu1~12.04_amd64.deb && dpkg -x libstdc++6_4.8.1-2ubuntu1~12.04_amd64.deb ./ && export LD_PRELOAD=$(pwd)/usr/lib/x86_64-linux-gnu/libstdc++.so.6; fi
+# TODO: attempt to make build-travis sudoless
 - ./scripts/build-travis.sh $TRAVIS_COMMIT
 
 install:

@@ -6,7 +6,8 @@ var tiles;
 var xray;
 var grids;
 var gridc;
-var bookmarks = style._bookmarks;
+var bookmarks = style._bookmarks || [];
+
 var mtime = (+new Date).toString(36);
 var placeentry = '<div class="col4 contain places-entry-container animate">' +
                     '<div id="place-sentry-<%= index %>" lat="<%= center[0] %>" lng="<%= center[1] %>" zoom="<%=zoom %>" class="js-places-entry fill-canvas places-entry pin-left col12"></div>' +
@@ -25,8 +26,6 @@ var placeentry = '<div class="col4 contain places-entry-container animate">' +
                       '<% } %>' +
                     '</div>'
                   '</div>';
-
-statHandler('drawtime')();
 
 if ('onbeforeunload' in window) window.onbeforeunload = function() {
   if ($('body').hasClass('changed')) return 'You have unsaved changes.';
@@ -134,7 +133,7 @@ Editor.prototype.addBookmark = function(ev) {
   ev.preventDefault();
 
   var view = this,
-      button = $('.places-button'),
+      button = $('.js-places-button'),
       lat = map.getCenter().wrap().lat,
       lng = map.getCenter().wrap().lng,
       zoom = map.getZoom();
@@ -246,7 +245,7 @@ Editor.prototype.renderPlaces = function(filter, search) {
 
 Editor.prototype.places = function(ev) {
   var container = $('.js-places-toggle');
-  var filter = $('input:checked',container).attr('value').toLowerCase();
+  var filter = $('input:checked', container).attr('value') ? $('input:checked', container).attr('value').toLowerCase() : '';
   window.editor.renderPlaces(filter, true);
 };
 
@@ -605,7 +604,7 @@ Editor.prototype.cartoError = function(ln, e, id) {
 
       var alert = document.createElement('a');
       alert.href = '#';
-      alert.className = 'z100 quiet truncate micro js-error-alert pin-left pin-right pad0x pad1y fill-yellow';
+      alert.className = 'z100 quiet truncate micro js-error-alert pin-left pin-right pad0x pad1y fill-orange';
       alert.innerHTML = 'Error: Line ' + (ln+1) + '</span>';
 
       // don't stack alerts on the same tab
@@ -677,11 +676,18 @@ Editor.prototype.refresh = function(ev) {
     this.map = map;
 
     map.on('zoomend', function() {
-      var visible = '';
+      var visible = '',
+          warning = '';
+
       if (window.location.hash === '#export' && $('#zoomedto').hasClass('visible-y')){
         visible = 'visible-y';
       }
-      $('#zoomedto').attr('class', 'contain zoom' + (map.getZoom()|0) + ' ' + visible);
+
+      if (window.location.hash !== '#export' && $('#zoomedto .warning').length) {
+        warning = 'warning';
+      }
+
+      $('#zoomedto').attr('class', 'contain zoom' + (map.getZoom()|0) + ' ' + visible + ' ' + warning);
     });
 
     function setCenter(e) {
@@ -826,6 +832,7 @@ window.onhashchange = function(ev) {
     statHandler('drawtime')();
     break;
   case 'export':
+    $('#zoomedto').removeClass('warning');
     if ($('body').hasClass('local')) {
       window.location.hash = '#';
       break;
