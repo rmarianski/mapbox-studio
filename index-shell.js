@@ -81,6 +81,7 @@ function makeWindow() {
         }
     });
     mainWindow.loadUrl('file://' + path.join(__dirname, 'app', 'loading.html'));
+    mainWindow.openDevTools();
     // Restore OS X fullscreen state.
     var cp = require("child_process");
     if (cp.execSync("which defaults >/dev/null && defaults read com.mapbox.mapbox-studio FullScreen 2>/dev/null || echo 0") == 1) {
