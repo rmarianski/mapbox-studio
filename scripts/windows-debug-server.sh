@@ -24,11 +24,14 @@ maxtimeout=2880
 region="eu-central-1"
 ami_id="ami-3690a22b"
 
+sudo pip install -q awscli
+
 user_data="<powershell>
     ([ADSI]\"WinNT://./Administrator\").SetPassword(\"${CRED}\")
-    & \"C:\\Program Files (x86)\\Git\\bin\\git\" clone https://github.com/mapbox/windows-builds.git Z:\\mbs
+    & \"C:\\Program Files (x86)\\Git\\bin\\git\" clone https://github.com/mapbox/mapbox-studio.git Z:\\mbs
     & Invoke-WebRequest https://mapbox.s3.amazonaws.com/node-cpp11/v0.10.33/x64/node.exe -OutFile Z:\\mbs\\node.exe
-    & cd /d Z:\\mbs
+    & Z:
+    & cd \\mbs
     & npm install
     </powershell>
     <persist>true</persist>"
