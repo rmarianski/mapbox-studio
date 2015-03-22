@@ -3,23 +3,24 @@ set -e
 
 PLATFORM=$(uname -s | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/")
 COMMIT_MESSAGE=$(git show -s --format=%B $TRAVIS_COMMIT | tr -d '\n')
-GITSHA=$(echo "$COMMIT_MESSAGE" | grep -oE '\[publish [a-z0-9\.\-]+\]' | grep -oE '[a-z0-9\.\-]+' | tail -n1)
+GITSHA=$(echo "$COMMIT_MESSAGE" | grep -oE '\[windebug [a-z0-9\.\-]+\]' | grep -oE '[a-z0-9\.\-]+' | tail -n1)
 
 if [ $PLATFORM != "linux" ]; then
     exit 0
 fi
 
-if [ -z "$1" ]; then
+if [ -z "$GITSHA" ]; then
     GITSHA="mb-pages"
-else
+fi
 
-if test "${COMMIT_MESSAGE#*'[windebug]'}" == "$COMMIT_MESSAGE"
+if test "${COMMIT_MESSAGE#*'[windebug'}" == "$COMMIT_MESSAGE";
 then
     echo "no [windebug] in commit message, nothing to do here."
     exit 0
 fi
 
 echo "[windebug] in commit message, about to start server"
+echo "using GITSHA: ${GITSHA}"
 
 sleep=10
 date_time=`date +%Y%m%d%H%M`
@@ -54,7 +55,7 @@ id=$(aws ec2 run-instances \
 echo "Created instance: $id"
 
 aws ec2 create-tags --region $region --resources $id --tags "Key=Name,Value=Temp-mapbox-studio-windebug-server-${TRAVIS_REPO_SLUG}-${TRAVIS_JOB_NUMBER}"
-aws ec2 create-tags --region $region --resources $id --tags "Key=GitSha,Value=$gitsha"
+aws ec2 create-tags --region $region --resources $id --tags "Key=GitSha,Value=${GITSHA}"
 
 dns=''
 instance_status_stopped=$(aws ec2 describe-instances --region $region --instance-id $id | jq -r '.Reservations[0].Instances[0].State.Name')
