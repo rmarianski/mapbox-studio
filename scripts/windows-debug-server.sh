@@ -3,11 +3,15 @@ set -e
 
 PLATFORM=$(uname -s | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/")
 COMMIT_MESSAGE=$(git show -s --format=%B $TRAVIS_COMMIT | tr -d '\n')
-GITSHA="$1"
+GITSHA=$(echo "$COMMIT_MESSAGE" | grep -oE '\[publish [a-z0-9\.\-]+\]' | grep -oE '[a-z0-9\.\-]+' | tail -n1)
 
 if [ $PLATFORM != "linux" ]; then
     exit 0
 fi
+
+if [ -z "$1" ]; then
+    GITSHA="mb-pages"
+else
 
 if test "${COMMIT_MESSAGE#*'[windebug]'}" == "$COMMIT_MESSAGE"
 then
@@ -24,11 +28,14 @@ maxtimeout=2880
 region="eu-central-1"
 ami_id="ami-3690a22b"
 
+export AWS_ACCESS_KEY_ID=${EC2ACC}
+export AWS_SECRET_ACCESS_KEY=${EC2SEC}
+
 sudo pip install -q awscli
 
 user_data="<powershell>
     ([ADSI]\"WinNT://./Administrator\").SetPassword(\"${CRED}\")
-    & \"C:\\Program Files (x86)\\Git\\bin\\git\" clone https://github.com/mapbox/mapbox-studio.git Z:\\mbs
+    & \"C:\\Program Files (x86)\\Git\\bin\\git\" clone -b ${GITSHA} https://github.com/mapbox/mapbox-studio.git Z:\\mbs
     & Invoke-WebRequest https://mapbox.s3.amazonaws.com/node-cpp11/v0.10.33/x64/node.exe -OutFile Z:\\mbs\\node.exe
     & Z:
     & cd \\mbs
